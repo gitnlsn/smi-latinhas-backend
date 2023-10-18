@@ -1,0 +1,1 @@
+# SMI Latinhas backend
