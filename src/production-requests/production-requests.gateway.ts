@@ -2,13 +2,18 @@ import {
   WebSocketGateway,
   SubscribeMessage,
   MessageBody,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { ProductionRequestsService } from './production-requests.service';
 import { CreateProductionRequestDto } from './dto/create-production-request.dto';
 import { UpdateProductionRequestDto } from './dto/update-production-request.dto';
+import { Server } from 'socket.io';
 
-@WebSocketGateway()
+@WebSocketGateway({ cors: true })
 export class ProductionRequestsGateway {
+  @WebSocketServer()
+  server: Server;
+
   constructor(
     private readonly productionRequestsService: ProductionRequestsService,
   ) {}
@@ -17,7 +22,13 @@ export class ProductionRequestsGateway {
   create(
     @MessageBody() createProductionRequestDto: CreateProductionRequestDto,
   ) {
-    return this.productionRequestsService.create(createProductionRequestDto);
+    const createdRequest = this.productionRequestsService.create(
+      createProductionRequestDto,
+    );
+    if (createdRequest !== undefined) {
+      this.server.emit('createdProductionRequest', createdRequest);
+    }
+    return createdRequest;
   }
 
   @SubscribeMessage('findAllProductionRequests')
@@ -34,11 +45,21 @@ export class ProductionRequestsGateway {
   update(
     @MessageBody() updateProductionRequestDto: UpdateProductionRequestDto,
   ) {
-    return this.productionRequestsService.update(updateProductionRequestDto);
+    const updatedRequest = this.productionRequestsService.update(
+      updateProductionRequestDto,
+    );
+    if (updatedRequest !== undefined) {
+      this.server.emit('updatedProductionRequest', updatedRequest);
+    }
+    return updatedRequest;
   }
 
   @SubscribeMessage('removeProductionRequest')
   remove(@MessageBody() id: string) {
-    return this.productionRequestsService.remove(id);
+    const removedRequest = this.productionRequestsService.remove(id);
+    if (removedRequest !== undefined) {
+      this.server.emit('removedProductionRequest', removedRequest);
+    }
+    return removedRequest;
   }
 }
